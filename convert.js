@@ -1,10 +1,10 @@
 var sup = require("child_process");
 var request = require("request");
-    beautify = require("js-beautify");
-    path = require("path");
-    srcmap = require("source-map");
-    webunpack = require("webpack-unpack")
-    fs= require('fs');
+var beautify = require("js-beautify");
+var path = require("path");
+var srcmap = require("source-map");
+var webunpack = require("webpack-unpack");
+var fs = require('fs');
 var unbun, map;
 console.log("moomoo.io javascript downloader by Shana6");
 console.log("downloading bundles")
@@ -46,21 +46,32 @@ function main(){
         console.log("done creating folders");
         
         console.log("now saving source to ./moomoosrc");
+        var skipped = false;
         for(var sf of sourceFiles){
             var pat = [__dirname,"moomoosrc"];
             for(var s of sf.split('/'))pat.push(s);
             var pathe = path.join.apply(this,pat);
+            if (fs.existsSync(pathe)) {
+                console.log(sf+" already exists, skipping");
+                skipped = true;
+            }
             var found = consumer.sources.find((value)=>{
                 return value.includes(pat.slice(2).join("/"));
             })
             fs.writeFileSync(pathe,beautify.js_beautify(unbun[consumer.sources.indexOf(found)-1].source,{
-                indent_with_tabs: true
+                indent_with_tabs: true,
+                wrap_attributes: "force",
+                wrap_line_length: 150
             }));
             fileToMap[sourceFiles.indexOf(sf)] = sf;
         }
+        if (skipped)console.log("if you want to redownload a file to reset it, just delete the file and it will be redownloaded");
         console.log("done saving source");
+        console.log("saving code into a module-deps format for repacking");
+        fs.writeFileSync("moomoosrc/webpack-unbundled.json",JSON.stringify(unbun,null,4));
+        console.log("done saving ./moomoosrc/webpack-unbundled.json");
         console.log("writing a file to number map (used for occurences of require(<number>) in files)")
-        fs.writeFileSync("./moomoosrc/filesToNumbers.json",JSON.stringify(fileToMap));
+        fs.writeFileSync("./moomoosrc/filesToNumbers.json",JSON.stringify(fileToMap,null,4));
         console.log("done, saved in ./moomoosrc/filesToNumbers.json, exiting.")
     })
 }

@@ -13,9 +13,12 @@
   },
   "license": "ISC",
   "dependencies": {
+    "browser-pack": "^6.1.0",
     "js-beautify": "^1.9.0",
     "request": "^2.88.0",
     "source-map": "^0.7.3",
+    "uglify-es": "^3.3.9",
+    "uglify-js": "^3.5.4",
     "webpack-unpack": "^2.0.0"
   }
 }
