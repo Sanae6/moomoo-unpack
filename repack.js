@@ -61,7 +61,8 @@ function packSources(){
     fs.createReadStream("./moomoosrc/webpack-reunbun.json").pipe(bropack);
     console.log("ok")
     let exo = exorcist("./moomoosrc/repacked-bundle.js.map");
-    bropack.pipe(exo);
+    console.log(exo)
+    bropack.add([]).bundle().pipe(exo);
     exo.pipe(fs.createWriteStream("./moomoosrc/repacked-bundle.js"));
     console.log("packed and saved to ./moomoosrc/repacked-bundle.js");
 }

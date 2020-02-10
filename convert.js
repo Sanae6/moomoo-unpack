@@ -6,6 +6,7 @@ var srcmap = require("source-map");
 var webunpack = require("webpack-unpack");
 var fs = require('fs');
 var unbun, map;
+fs.rmdirSync("moomoosrc",{recursive:true})
 console.log("moomoo.io javascript downloader by Shana6");
 console.log("downloading bundles")
 request.get("http://moomoo.io/bundle.js",function(err,res,body){
@@ -26,8 +27,7 @@ function main(){
         var sourceFiles = [];
         var fileToMap = {};
         for(var srcLocUn of consumer.sources){
-            var srcLoc = srcLocUn.slice(11);//11 for folder 17 for website
-            if (srcLoc.includes("dsoa") || srcLoc.includes("bootstrap")) continue;//these ruin the thing or whatever idk also bootstrap isnt even worth anything
+            var srcLoc = srcLocUn.slice(11);
             sourceFiles.push(srcLoc);
             if(srcLoc.endsWith(".js")){
                 var l = srcLoc.lastIndexOf('/')
@@ -51,27 +51,50 @@ function main(){
             var pat = [__dirname,"moomoosrc"];
             for(var s of sf.split('/'))pat.push(s);
             var pathe = path.join.apply(this,pat);
-            if (fs.existsSync(pathe)) {
-                console.log(sf+" already exists, skipping");
+            fileToMap[sourceFiles.indexOf(sf)] = {sf,path:pathe};
+        }
+        for(let sf of Object.values(fileToMap)){
+            console.log(sf)
+            if (fs.existsSync(sf.path)) {
+                console.log(sf.sf+" already exists, skipping");
                 skipped = true;
+                continue;
             }
             var found = consumer.sources.find((value)=>{
-                return value.includes(pat.slice(2).join("/"));
+                //return value.includes(pat.slice(2).join("/"));
+                return value.endsWith(sf.sf)
             })
-            fs.writeFileSync(pathe,beautify.js_beautify(unbun[consumer.sources.indexOf(found)-1].source,{
+            console.log(found)
+            requireRewrite(consumer,found,sourceFiles)
+            fs.writeFileSync(sf.path,beautify.js_beautify(unbun[consumer.sources.indexOf(found)-1].source,{
                 indent_with_tabs: true,
                 wrap_attributes: "force",
                 wrap_line_length: 150
             }));
-            fileToMap[sourceFiles.indexOf(sf)] = sf;
         }
         if (skipped)console.log("if you want to redownload a file to reset it, just delete the file and it will be redownloaded");
         console.log("done saving source");
         console.log("saving code into a module-deps format for repacking");
         fs.writeFileSync("moomoosrc/webpack-unbundled.json",JSON.stringify(unbun,null,4));
         console.log("done saving ./moomoosrc/webpack-unbundled.json");
-        console.log("writing a file to number map (used for occurences of require(<number>) in files)")
+        console.log("writing a file to number map (used for occurences of require(<number>) in files)");
         fs.writeFileSync("./moomoosrc/filesToNumbers.json",JSON.stringify(fileToMap,null,4));
-        console.log("done, saved in ./moomoosrc/filesToNumbers.json, exiting.")
+        console.log("done, saved in ./moomoosrc/filesToNumbers.json, exiting.");
     })
+}
+
+const reqmatch = /(?:require\()([\d]+)(?:\))/g
+
+function requireRewrite(consumer,sourceFile,pathe){
+    /**
+     * @type {string}
+     */
+    let src = unbun[consumer.sources.indexOf(sourceFile)-1].source;
+    let re = new RegExp(reqmatch);
+    let match;
+    while((match = re.exec(src)) !== null){
+        
+        src = src.replace(match[0],"require(\""+pathe[match[1]]+"\")")
+    }
+    unbun[consumer.sources.indexOf(sourceFile)-1].source = src;
 }
