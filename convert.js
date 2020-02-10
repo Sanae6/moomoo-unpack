@@ -54,7 +54,6 @@ function main(){
             fileToMap[sourceFiles.indexOf(sf)] = {sf,path:pathe};
         }
         for(let sf of Object.values(fileToMap)){
-            console.log(sf)
             if (fs.existsSync(sf.path)) {
                 console.log(sf.sf+" already exists, skipping");
                 skipped = true;
@@ -64,7 +63,6 @@ function main(){
                 //return value.includes(pat.slice(2).join("/"));
                 return value.endsWith(sf.sf)
             })
-            console.log(found)
             requireRewrite(consumer,found,sourceFiles)
             fs.writeFileSync(sf.path,beautify.js_beautify(unbun[consumer.sources.indexOf(found)-1].source,{
                 indent_with_tabs: true,
@@ -93,8 +91,9 @@ function requireRewrite(consumer,sourceFile,pathe){
     let re = new RegExp(reqmatch);
     let match;
     while((match = re.exec(src)) !== null){
-        
-        src = src.replace(match[0],"require(\""+pathe[match[1]]+"\")")
+        let args = Array(sourceFile.search("/")).fill("../");
+        args.push(pathe[match[1]]);
+        src = src.replace(match[0],"require(\""+path.join.apply(path,args)+"\")")
     }
     unbun[consumer.sources.indexOf(sourceFile)-1].source = src;
 }
